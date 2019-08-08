@@ -237,3 +237,9 @@ target_link_libraries(char_char_char_vectors_test3 ${PROJECT_NAME} ${catkin_LIBR
 
 add_executable(char_char_char_vectors_test4 tests/src/char_char_char_vectors_test4.cpp)
 target_link_libraries(char_char_char_vectors_test4 ${PROJECT_NAME} ${catkin_LIBRARIES})
+
+add_executable(pointcloud_revert_cpu tests/src/pointcloud_revert_cpu.cpp)
+target_link_libraries(pointcloud_revert_cpu ${PROJECT_NAME} ${catkin_LIBRARIES})
+
+add_executable(pointcloud_revert_gpu tests/src/pointcloud_revert_gpu.cpp)
+target_link_libraries(pointcloud_revert_gpu ${PROJECT_NAME} ${catkin_LIBRARIES})

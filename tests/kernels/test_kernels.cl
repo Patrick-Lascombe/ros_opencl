@@ -7,6 +7,11 @@ kernel void cubedPointcloud(global char* v){
     // meaningful results.
 }
 
+kernel void invertPointcloud(global float* v){
+    unsigned int i = get_global_id(0);
+    v[i] = -v[i];
+}
+
 kernel void closerLaserScan(global float* v){
     unsigned int i = get_global_id(0);
     v[i] = v[i] * v[i] * 0.1f;
