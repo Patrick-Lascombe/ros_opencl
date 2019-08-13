@@ -12,6 +12,48 @@ kernel void invertPointcloud(global float* v){
     v[i] = -v[i];
 }
 
+kernel void minmaxPointcloud(global float* vx, global float* vy, global float* vz, global float* res) {
+    unsigned int i = get_global_id(0);
+    if(i == 0) {
+        res[0] = vx[i];
+        res[1] = vy[i];
+        res[2] = vz[i];
+        res[3] = vx[i];
+        res[4] = vy[i];
+        res[5] = vz[i];
+    }
+
+    if(vx[i] < res[0])
+    {
+        res[0] = vx[i];
+    }
+
+    if(vy[i] < res[1])
+    {
+        res[1] = vy[i];
+    }
+
+    if(vz[i] < res[2])
+    {
+        res[2] = vz[i];
+    }
+
+    if(vx[i] > res[3])
+    {
+        res[3] = vx[i];
+    }
+
+    if(vy[i] > res[4])
+    {
+        res[4] = vy[i];
+    }
+
+    if(vz[i] > res[5])
+    {
+        res[5] = vz[i];
+    }
+}
+
 kernel void closerLaserScan(global float* v){
     unsigned int i = get_global_id(0);
     v[i] = v[i] * v[i] * 0.1f;

@@ -278,6 +278,8 @@ namespace ros_opencl {
 
         program = createProgram (LoadKernel (full_kernel_path.c_str()), context);
 
+        ROS_INFO("Program created");
+
         checkError (clBuildProgram (program, deviceIdCount, deviceIds.data (), "-D FILTER_SIZE=1", NULL, NULL));
 
         ROS_INFO("Program built");
@@ -21124,6 +21126,124 @@ namespace ros_opencl {
 
         return res;
     }
+
+    void ROS_OpenCL::process(const std::vector<float> v, const std::vector<float> v2, const std::vector<float> v3, std::vector<float>* v4, const ROS_OpenCL_Params* params) {
+        size_t sz = v.size();
+        size_t sz2 = v2.size();
+        size_t sz3 = v3.size();
+        size_t sz4 = v4->size();
+        size_t typesz = sizeof(float) * sz;
+        size_t typesz2 = sizeof(float) * sz2;
+        size_t typesz3 = sizeof(float) * sz3;
+        size_t typesz4 = sizeof(float) * sz4;
+        size_t temp_sz = params != NULL ? params->buffers_size.size() : 0;
+
+        if (temp_sz > 0){
+            if (temp_sz > 3){
+                if (temp_sz > 4){
+                    ROS_WARN("buffer_size includes more than three elements. Exactly three are needed. Using the first three...");
+                }
+                typesz = sizeof(float) * params->buffers_size[0];
+                typesz2 = sizeof(float) * params->buffers_size[1];
+                typesz3 = sizeof(float) * params->buffers_size[2];
+                typesz4 = sizeof(float) * params->buffers_size[3];
+            }
+            else{
+                ROS_WARN("buffer_size includes less than three elements. Exactly three are needed for custom buffer sizes. Using default values...");
+            }
+        }
+
+        cl_int error = 0;
+        cl_mem buffer = clCreateBuffer(context, CL_MEM_WRITE_ONLY, typesz, NULL, &error);
+        checkError(error);
+        cl_mem buffer2 = clCreateBuffer(context, CL_MEM_WRITE_ONLY, typesz2, NULL, &error);
+        checkError(error);
+        cl_mem buffer3 = clCreateBuffer(context, CL_MEM_WRITE_ONLY, typesz3, NULL, &error);
+        checkError(error);
+        cl_mem buffer4 = clCreateBuffer(context, CL_MEM_READ_ONLY, typesz4, NULL, &error);
+        checkError(error);
+
+        clSetKernelArg (kernel, 0, sizeof (cl_mem), &buffer);
+        clSetKernelArg (kernel, 1, sizeof (cl_mem), &buffer2);
+        clSetKernelArg (kernel, 2, sizeof (cl_mem), &buffer3);
+        clSetKernelArg (kernel, 3, sizeof (cl_mem), &buffer4);
+        cl_command_queue queue = clCreateCommandQueueWithProperties (context, deviceIds [0], NULL, &error);
+
+        clEnqueueWriteBuffer(queue, buffer, CL_TRUE, 0, typesz, &v[0], 0, NULL, NULL);
+        checkError (error);
+        clEnqueueWriteBuffer(queue, buffer2, CL_TRUE, 0, typesz2, &v2[0], 0, NULL, NULL);
+        checkError (error);
+        clEnqueueWriteBuffer(queue, buffer3, CL_TRUE, 0, typesz3, &v3[0], 0, NULL, NULL);
+        checkError (error);
+        clEnqueueWriteBuffer(queue, buffer4, CL_TRUE, 0, typesz3, &v4->at(0), 0, NULL, NULL);
+        checkError (error);
+
+        size_t size[4] = {sz, sz2, sz3, sz4};
+        size_t work_dimension = 4;
+
+        temp_sz = params != NULL ? params->global_work_size.size() : 0;
+        if (params == NULL or (params != NULL and not(params->multi_dimensional or temp_sz > 0))){
+            work_dimension = 1;
+        }
+        else if(temp_sz > 0){
+            if (params->multi_dimensional){
+                ROS_WARN("multi_dimensional should be set to true without pushing to global_work_size. \
+                    For default multidimensional global work size, leave the global_work_size vector empty, \
+                    and set multi_dimensional to true. Setting the global work size based on the values inside \
+                    the global_work_size vector.");
+            }
+            if (temp_sz == 1){
+                size[0] = params->global_work_size[0];
+                work_dimension = 1;
+            }
+            else if (temp_sz == 2){
+                size[0] = params->global_work_size[0];
+                size[1] = params->global_work_size[1];
+                work_dimension = 2;
+            }
+            else if (temp_sz == 3){
+                size[0] = params->global_work_size[0];
+                size[1] = params->global_work_size[1];
+                size[2] = params->global_work_size[2];
+                work_dimension = 3;
+            }
+            else{
+                size[0] = params->global_work_size[0];
+                size[1] = params->global_work_size[1];
+                size[2] = params->global_work_size[2];
+                size[2] = params->global_work_size[3];
+                if (temp_sz > 4){
+                    ROS_WARN("global_work_size includes more than three elements. A maximum of three is allowed. Using the first three...");
+                }
+            }
+        }
+
+        cl_event gpuExec;
+
+        checkError (clEnqueueNDRangeKernel (queue, kernel, work_dimension, NULL, size, NULL, 0, NULL, &gpuExec));
+
+        clWaitForEvents(1, &gpuExec);
+
+//        checkError (clEnqueueNDRangeKernel (queue, kernel, work_dimension, NULL, size, NULL, 0, NULL, &gpuExec));
+
+//        clWaitForEvents(1, &gpuExec);
+
+        float *result = (float *) malloc(typesz4);
+        checkError(clEnqueueReadBuffer(queue, buffer4, CL_TRUE, 0, typesz4, result, 0, NULL, NULL));
+
+        v4->assign(result, result+sz4);
+
+
+        clReleaseCommandQueue (queue);
+        clReleaseMemObject(buffer);
+        clReleaseMemObject(buffer2);
+        clReleaseMemObject(buffer3);
+        clReleaseMemObject(buffer4);
+        clReleaseEvent(gpuExec);
+
+        free(result);
+    }
+
 
     void ROS_OpenCL::process(std::vector<float>* v, const std::vector<int> v2, const std::vector<double> v3, const ROS_OpenCL_Params* params){
         size_t sz = v->size();
