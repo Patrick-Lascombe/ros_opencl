@@ -36,6 +36,7 @@ void cloudCPUCallback (const sensor_msgs::PointCloud2& msg){
     for(int i = 0; i < res.size() ; i++) {
         bounds.push_back(res[i] / voxel_size);
     }
+    bounds[2] = 0;
 
     numDivs.push_back(1 + bounds[3] - bounds[0]);
     numDivs.push_back(1 + bounds[4] - bounds[1]);
@@ -45,13 +46,31 @@ void cloudCPUCallback (const sensor_msgs::PointCloud2& msg){
 
     std::vector<int> numPoints(num_vox);
     std::vector<int> firstPoint(num_vox);
-    std::vector<unsigned int> indices(num_vox);
+    std::vector<unsigned int> indices(x.size());
+    std::vector<float> voxel_size_v;
+    voxel_size_v.push_back(voxel_size);
+//    roscl_voxelassignement.process(x, y, z, numDivs, bounds, &numPoints, &firstPoint, &indices, voxel_size_v);
+    for(int i = 0; i < x.size() ; i++) {
+        int x_idx = floor((x[i]/voxel_size) - bounds[0]);
+        int y_idx = floor((y[i]/voxel_size) - bounds[1]);
+        int z_idx = floor((z[i]/voxel_size) - bounds[2]);
 
-    roscl_voxelassignement.process(x, y, z, numDivs, bounds, &numPoints, &firstPoint, &indices, voxel_size);
+        unsigned int idx = x_idx + y_idx * numDivs[0] + z_idx * numDivs[0] * numDivs[1];
+        unsigned int pointsInVox = numPoints[idx] + 1;
 
-    for(int i = 0; i < numPoints.size() ; i++) {
-        if(numPoints[i] > 0) {
-            std::cout << i << " : " << indices[i] << std::endl;
+        if(pointsInVox == 1) {
+            firstPoint[idx] = i;
+        }
+
+        numPoints[idx] = pointsInVox;
+        indices[i] = idx;
+//        std::cout << idx << std::endl;
+    }
+
+    for(int j = 0; j < num_vox ; j++) {
+        if ((numPoints[j] > 0) || (firstPoint[j] > 0)){
+            std::cout << "numPoints : " << numPoints[j] << std::endl;
+            std::cout << "firstPoint : " << firstPoint[j] << std::endl;
         }
     }
 }

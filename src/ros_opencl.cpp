@@ -21244,8 +21244,7 @@ namespace ros_opencl {
         free(result);
     }
 
-    void ROS_OpenCL::process(const std::vector<float> vx, const std::vector<float> vy, const std::vector<float> vz, std::vector<float> numDivs, std::vector<float> bounds, std::vector<int>* numPoints, std::vector<int>* firstPoint, std::vector<unsigned int>* indices, float voxelSize, const ROS_OpenCL_Params* params) {
-
+    void ROS_OpenCL::process(const std::vector<float> vx, const std::vector<float> vy, const std::vector<float> vz, std::vector<float> numDivs, std::vector<float> bounds, std::vector<int>* numPoints, std::vector<int>* firstPoint, std::vector<unsigned int>* indices, std::vector<float> voxelSize, const ROS_OpenCL_Params* params) {
         size_t sz_vx = vx.size();
         size_t sz_vy = vy.size();
         size_t sz_vz = vz.size();
@@ -21254,7 +21253,7 @@ namespace ros_opencl {
         size_t sz_numPoints = numPoints->size();
         size_t sz_firstPoint = firstPoint->size();
         size_t sz_indices = indices->size();
-        size_t sz_voxelSize = 1;
+        size_t sz_voxelSize = voxelSize.size();
         size_t temp_sz = params != NULL ? params->buffers_size.size() : 0;
 
         size_t typesz_vx = sizeof(float)* sz_vx;
