@@ -21244,6 +21244,123 @@ namespace ros_opencl {
         free(result);
     }
 
+    void ROS_OpenCL::process(const std::vector<float> vx, const std::vector<float> vy, const std::vector<float> vz, std::vector<float> numDivs, std::vector<float> bounds, std::vector<int>* numPoints, std::vector<int>* firstPoint, std::vector<unsigned int>* indices, float voxelSize, const ROS_OpenCL_Params* params) {
+
+        size_t sz_vx = vx.size();
+        size_t sz_vy = vy.size();
+        size_t sz_vz = vz.size();
+        size_t sz_numDivs = numDivs.size();
+        size_t sz_bounds = bounds.size();
+        size_t sz_numPoints = numPoints->size();
+        size_t sz_firstPoint = firstPoint->size();
+        size_t sz_indices = indices->size();
+        size_t sz_voxelSize = 1;
+        size_t temp_sz = params != NULL ? params->buffers_size.size() : 0;
+
+        size_t typesz_vx = sizeof(float)* sz_vx;
+        size_t typesz_vy = sizeof(float)* sz_vy;
+        size_t typesz_vz = sizeof(float)* sz_vz;
+        size_t typesz_numDivs = sizeof(float)* sz_numDivs;
+        size_t typesz_bounds = sizeof(float)* sz_bounds;
+        size_t typesz_numPoints = sizeof(int)* sz_numPoints;
+        size_t typesz_firstPoint = sizeof(int)* sz_firstPoint;
+        size_t typesz_indices = sizeof(unsigned int)* sz_indices;
+        size_t typesz_voxelSize = sizeof(float)* sz_voxelSize;
+
+        cl_int error = 0;
+        cl_mem buffer_vx = clCreateBuffer(context, CL_MEM_WRITE_ONLY, typesz_vx, NULL, &error);
+        checkError(error);
+        cl_mem buffer_vy = clCreateBuffer(context, CL_MEM_WRITE_ONLY, typesz_vy, NULL, &error);
+        checkError(error);
+        cl_mem buffer_vz = clCreateBuffer(context, CL_MEM_WRITE_ONLY, typesz_vz, NULL, &error);
+        checkError(error);
+        cl_mem buffer_numDivs = clCreateBuffer(context, CL_MEM_WRITE_ONLY, typesz_numDivs, NULL, &error);
+        checkError(error);
+        cl_mem buffer_bounds = clCreateBuffer(context, CL_MEM_WRITE_ONLY, typesz_bounds, NULL, &error);
+        checkError(error);
+        cl_mem buffer_numPoints = clCreateBuffer(context, CL_MEM_READ_WRITE, typesz_numPoints, NULL, &error);
+        checkError(error);
+        cl_mem buffer_firstPoint = clCreateBuffer(context, CL_MEM_READ_WRITE, typesz_firstPoint, NULL, &error);
+        checkError(error);
+        cl_mem buffer_indices = clCreateBuffer(context, CL_MEM_READ_WRITE, typesz_indices, NULL, &error);
+        checkError(error);
+        cl_mem buffer_voxelSize = clCreateBuffer(context, CL_MEM_WRITE_ONLY, typesz_voxelSize, NULL, &error);
+        checkError(error);
+
+
+        clSetKernelArg (kernel, 0, sizeof (cl_mem), &buffer_vx);
+        clSetKernelArg (kernel, 1, sizeof (cl_mem), &buffer_vy);
+        clSetKernelArg (kernel, 2, sizeof (cl_mem), &buffer_vz);
+        clSetKernelArg (kernel, 3, sizeof (cl_mem), &buffer_numDivs);
+        clSetKernelArg (kernel, 4, sizeof (cl_mem), &buffer_bounds);
+        clSetKernelArg (kernel, 5, sizeof (cl_mem), &buffer_numPoints);
+        clSetKernelArg (kernel, 6, sizeof (cl_mem), &buffer_firstPoint);
+        clSetKernelArg (kernel, 7, sizeof (cl_mem), &buffer_indices);
+        clSetKernelArg (kernel, 8, sizeof (cl_mem), &buffer_voxelSize);
+
+        cl_command_queue queue = clCreateCommandQueueWithProperties (context, deviceIds [0], NULL, &error);
+
+        clEnqueueWriteBuffer(queue, buffer_vx, CL_TRUE, 0, typesz_vx, &vx[0], 0, NULL, NULL);
+        checkError (error);
+        clEnqueueWriteBuffer(queue, buffer_vy, CL_TRUE, 0, typesz_vy, &vy[0], 0, NULL, NULL);
+        checkError (error);
+        clEnqueueWriteBuffer(queue, buffer_vz, CL_TRUE, 0, typesz_vz, &vz[0], 0, NULL, NULL);
+        checkError (error);
+        clEnqueueWriteBuffer(queue, buffer_numDivs, CL_TRUE, 0, typesz_numDivs, &numDivs[0], 0, NULL, NULL);
+        checkError (error);
+        clEnqueueWriteBuffer(queue, buffer_bounds, CL_TRUE, 0, typesz_bounds, &bounds[0], 0, NULL, NULL);
+        checkError (error);
+        clEnqueueWriteBuffer(queue, buffer_numPoints, CL_TRUE, 0, typesz_numPoints, &numPoints->at(0), 0, NULL, NULL);
+        checkError (error);
+        clEnqueueWriteBuffer(queue, buffer_firstPoint, CL_TRUE, 0, typesz_firstPoint, &firstPoint->at(0), 0, NULL, NULL);
+        checkError (error);
+        clEnqueueWriteBuffer(queue, buffer_indices, CL_TRUE, 0, typesz_indices, &indices->at(0), 0, NULL, NULL);
+        checkError (error);
+        clEnqueueWriteBuffer(queue, buffer_voxelSize, CL_TRUE, 0, typesz_voxelSize, &voxelSize, 0, NULL, NULL);
+        checkError (error);
+
+        size_t size[9] = {sz_vx, sz_vy, sz_vz, sz_numDivs, sz_bounds, sz_numPoints, sz_firstPoint, sz_indices, sz_voxelSize};
+        size_t work_dimension = 1;
+
+        temp_sz = params != NULL ? params->global_work_size.size() : 0;
+        if (params == NULL or (params != NULL and not(params->multi_dimensional or temp_sz > 0))){
+            work_dimension = 1;
+        }
+
+        cl_event gpuExec;
+
+        checkError (clEnqueueNDRangeKernel (queue, kernel, work_dimension, NULL, size, NULL, 0, NULL, &gpuExec));
+
+        clWaitForEvents(1, &gpuExec);
+
+
+        float *result_numPoints = (float *) malloc(typesz_numPoints);
+        float *result_firstPoint = (float *) malloc(typesz_firstPoint);
+        float *result_indices = (float *) malloc(typesz_indices);
+
+        checkError(clEnqueueReadBuffer(queue, buffer_numPoints, CL_TRUE, 0, typesz_numPoints, result_numPoints, 0, NULL, NULL));
+        checkError(clEnqueueReadBuffer(queue, buffer_firstPoint, CL_TRUE, 0, typesz_firstPoint, result_firstPoint, 0, NULL, NULL));
+        checkError(clEnqueueReadBuffer(queue, buffer_indices, CL_TRUE, 0, typesz_indices, result_indices, 0, NULL, NULL));
+
+        numPoints->assign(result_numPoints, result_numPoints+sz_numPoints);
+        firstPoint->assign(result_firstPoint, result_firstPoint+sz_firstPoint);
+        indices->assign(result_indices, result_indices+sz_indices);
+
+        clReleaseCommandQueue (queue);
+        clReleaseMemObject(buffer_vx);
+        clReleaseMemObject(buffer_vy);
+        clReleaseMemObject(buffer_vz);
+        clReleaseMemObject(buffer_numDivs);
+        clReleaseMemObject(buffer_bounds);
+        clReleaseMemObject(buffer_numPoints);
+        clReleaseMemObject(buffer_firstPoint);
+        clReleaseMemObject(buffer_indices);
+        clReleaseMemObject(buffer_voxelSize);
+        clReleaseEvent(gpuExec);
+        free(result_numPoints);
+        free(result_firstPoint);
+        free(result_indices);
+    }
 
     void ROS_OpenCL::process(std::vector<float>* v, const std::vector<int> v2, const std::vector<double> v3, const ROS_OpenCL_Params* params){
         size_t sz = v->size();

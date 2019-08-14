@@ -8,12 +8,14 @@
 using namespace std;
 
 ros::Publisher pub;
-ros_opencl::ROS_OpenCL roscl;
+ros_opencl::ROS_OpenCL roscl_minmax;
+ros_opencl::ROS_OpenCL roscl_voxelassignement;
 
 void cloudCPUCallback (const sensor_msgs::PointCloud2& msg){
     Eigen::Vector3d min_pt, max_pt;
     sensor_msgs::PointCloud2 msg_2(msg);
 
+    float voxel_size = 0.05;
     sensor_msgs::PointCloud2Iterator<float> iter_x(msg_2, "x");
     sensor_msgs::PointCloud2Iterator<float> iter_y(msg_2, "y");
     sensor_msgs::PointCloud2Iterator<float> iter_z(msg_2, "z");
@@ -28,7 +30,30 @@ void cloudCPUCallback (const sensor_msgs::PointCloud2& msg){
         z.push_back(*iter_z);
     }
     std::vector<float> res(6);
-    roscl.process(x, y, z, &res);
+    roscl_minmax.process(x, y, z, &res);
+
+    std::vector<float> bounds, numDivs;
+    for(int i = 0; i < res.size() ; i++) {
+        bounds.push_back(res[i] / voxel_size);
+    }
+
+    numDivs.push_back(1 + bounds[3] - bounds[0]);
+    numDivs.push_back(1 + bounds[4] - bounds[1]);
+    numDivs.push_back(1 + bounds[5] - bounds[2]);
+
+    float num_vox = numDivs[0] * numDivs[1] * numDivs[2];
+
+    std::vector<int> numPoints(num_vox);
+    std::vector<int> firstPoint(num_vox);
+    std::vector<unsigned int> indices(num_vox);
+
+    roscl_voxelassignement.process(x, y, z, numDivs, bounds, &numPoints, &firstPoint, &indices, voxel_size);
+
+    for(int i = 0; i < numPoints.size() ; i++) {
+        if(numPoints[i] > 0) {
+            std::cout << i << " : " << indices[i] << std::endl;
+        }
+    }
 }
 
 int main (int argc, char** argv){
@@ -44,8 +69,8 @@ int main (int argc, char** argv){
 
     string full_kernel_path = ros::package::getPath("ros_opencl") + "/tests/kernels/" + kernel_filename;
 
-    roscl = new ros_opencl::ROS_OpenCL(full_kernel_path, "minmaxPointcloud");
-
+    roscl_minmax = new ros_opencl::ROS_OpenCL(full_kernel_path, "minmaxPointcloud");
+    roscl_voxelassignement = new ros_opencl::ROS_OpenCL(full_kernel_path, "voxelAssignement");
     pub = nh.advertise<sensor_msgs::PointCloud2>(result_topic, 1);
     ros::Subscriber s = nh.subscribe (cloud_topic, 1, cloudCPUCallback);
 

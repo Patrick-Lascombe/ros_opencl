@@ -54,6 +54,23 @@ kernel void minmaxPointcloud(global float* vx, global float* vy, global float* v
     }
 }
 
+kernel void voxelAssignement(global float* vx, global float* vy, global float* vz, global float* numDivs, global float* bounds, global int* numPoints, global int* firstPoint, global unsigned int* indices, global float* voxel_size) {
+    unsigned int i = get_global_id(0);
+    unsigned int x = floor(vx[i]/voxel_size[0] - bounds[0]);
+    unsigned int y = floor(vy[i]/voxel_size[0] - bounds[1]);
+    unsigned int z = floor(vz[i]/voxel_size[0] - bounds[2]);
+
+    unsigned int idx = x + y * numDivs[0] + z * numDivs[0] * numDivs[1];
+    unsigned int pointsInVox = numPoints[idx] + 1;
+
+    if(pointsInVox == 1) {
+        firstPoint[idx] = i;
+    }
+
+    numPoints[idx] = pointsInVox;
+    indices[i] = idx;
+}
+
 kernel void closerLaserScan(global float* v){
     unsigned int i = get_global_id(0);
     v[i] = v[i] * v[i] * 0.1f;
