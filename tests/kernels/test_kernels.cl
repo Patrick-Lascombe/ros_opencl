@@ -61,7 +61,7 @@ kernel void voxelAssignement(global float* vx, global float* vy, global float* v
     int z = floor((vz[i]/voxel_size[0]) - bounds[2]);
 
     unsigned int idx = x + y * numDivs[0] + z * numDivs[0] * numDivs[1];
-    unsigned int pointsInVox = numPoints[idx] + 1;
+    int pointsInVox = numPoints[idx] + 1;
 
     if(pointsInVox == 1) {
         firstPoint[idx] = i;

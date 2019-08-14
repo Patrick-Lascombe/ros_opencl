@@ -21244,7 +21244,7 @@ namespace ros_opencl {
         free(result);
     }
 
-    void ROS_OpenCL::process(const std::vector<float> vx, const std::vector<float> vy, const std::vector<float> vz, std::vector<float> numDivs, std::vector<float> bounds, std::vector<int>* numPoints, std::vector<int>* firstPoint, std::vector<unsigned int>* indices, std::vector<float> voxelSize, const ROS_OpenCL_Params* params) {
+    void ROS_OpenCL::process(const std::vector<float> vx, const std::vector<float> vy, const std::vector<float> vz, std::vector<float> numDivs, std::vector<float> bounds, std::vector<int>* numPoints, std::vector<int>* firstPoint, std::vector<unsigned int>* indices, float voxelSize, const ROS_OpenCL_Params* params) {
         size_t sz_vx = vx.size();
         size_t sz_vy = vy.size();
         size_t sz_vz = vz.size();
@@ -21253,7 +21253,7 @@ namespace ros_opencl {
         size_t sz_numPoints = numPoints->size();
         size_t sz_firstPoint = firstPoint->size();
         size_t sz_indices = indices->size();
-        size_t sz_voxelSize = voxelSize.size();
+        size_t sz_voxelSize = 1;
         size_t temp_sz = params != NULL ? params->buffers_size.size() : 0;
 
         size_t typesz_vx = sizeof(float)* sz_vx;
@@ -21333,17 +21333,17 @@ namespace ros_opencl {
         clWaitForEvents(1, &gpuExec);
 
 
-        float *result_numPoints = (float *) malloc(typesz_numPoints);
-        float *result_firstPoint = (float *) malloc(typesz_firstPoint);
-        float *result_indices = (float *) malloc(typesz_indices);
+        int *result_numPoints = (int *) malloc(typesz_numPoints);
+        int *result_firstPoint = (int *) malloc(typesz_firstPoint);
+        unsigned int *result_indices = (unsigned int *) malloc(typesz_indices);
 
         checkError(clEnqueueReadBuffer(queue, buffer_numPoints, CL_TRUE, 0, typesz_numPoints, result_numPoints, 0, NULL, NULL));
         checkError(clEnqueueReadBuffer(queue, buffer_firstPoint, CL_TRUE, 0, typesz_firstPoint, result_firstPoint, 0, NULL, NULL));
         checkError(clEnqueueReadBuffer(queue, buffer_indices, CL_TRUE, 0, typesz_indices, result_indices, 0, NULL, NULL));
 
-        numPoints->assign(result_numPoints, result_numPoints+sz_numPoints);
-        firstPoint->assign(result_firstPoint, result_firstPoint+sz_firstPoint);
-        indices->assign(result_indices, result_indices+sz_indices);
+        numPoints->assign(result_numPoints, result_numPoints + sz_numPoints);
+        firstPoint->assign(result_firstPoint, result_firstPoint + sz_firstPoint);
+        indices->assign(result_indices, result_indices + sz_indices);
 
         clReleaseCommandQueue (queue);
         clReleaseMemObject(buffer_vx);
