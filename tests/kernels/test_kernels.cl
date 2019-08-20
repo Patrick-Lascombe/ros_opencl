@@ -7,6 +7,10 @@ kernel void cubedPointcloud(global char* v){
     // meaningful results.
 }
 
+kernel void pcCropBox(global float* vx, global float* vy, global float* vz, global float minmax) {
+
+}
+
 kernel void invertPointcloud(global float* v){
     unsigned int i = get_global_id(0);
     v[i] = -v[i];
