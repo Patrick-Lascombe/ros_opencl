@@ -7,10 +7,6 @@ kernel void cubedPointcloud(global char* v){
     // meaningful results.
 }
 
-kernel void pcCropBox(global float* vx, global float* vy, global float* vz, global float minmax) {
-
-}
-
 kernel void invertPointcloud(global float* v){
     unsigned int i = get_global_id(0);
     v[i] = -v[i];
@@ -64,7 +60,7 @@ kernel void voxelAssignement(global float* vx, global float* vy, global float* v
     int y = floor((vy[i]/voxel_size[0]) - bounds[1]);
     int z = floor((vz[i]/voxel_size[0]) - bounds[2]);
 
-    unsigned int idx = x + y * numDivs[0] + z * numDivs[0] * numDivs[1];
+    int idx = x + y * numDivs[0] + z * numDivs[0] * numDivs[1];
     int pointsInVox = numPoints[idx] + 1;
 
     if(pointsInVox == 1) {
