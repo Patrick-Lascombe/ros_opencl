@@ -6569,6 +6569,8 @@ class ROS_OpenCL{
          */
         void process(const std::vector<float> vx, const std::vector<float> vy, const std::vector<float> vz, std::vector<float> numDivs, std::vector<float> bounds, std::vector<int>* numPoints, std::vector<int>* firstPoint, std::vector<unsigned int>* indices, float voxelSize, const ROS_OpenCL_Params* params=NULL);
 
+        void process(const std::vector<float> vx, const std::vector<float> vy, const std::vector<float> vz, const std::vector<float> minmax, std::vector<int>* isIn, const ROS_OpenCL_Params* params=NULL);
+
         /**
          * @brief                      The function that initiates kernel processing.
          *

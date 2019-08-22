@@ -246,3 +246,6 @@ target_link_libraries(pointcloud_revert_gpu ${PROJECT_NAME} ${catkin_LIBRARIES})
 
 add_executable(test_minmax_pc tests/src/test_minmax_pc.cpp)
 target_link_libraries(test_minmax_pc ${PROJECT_NAME} ${catkin_LIBRARIES})
+
+add_executable(pc_cropbox tests/src/pc_cropbox.cpp)
+target_link_libraries(pc_cropbox ${PROJECT_NAME} ${catkin_LIBRARIES})

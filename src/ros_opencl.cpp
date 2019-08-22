@@ -21361,6 +21361,73 @@ namespace ros_opencl {
         free(result_indices);
     }
 
+    void ROS_OpenCL::process(const std::vector<float> vx, const std::vector<float> vy, const std::vector<float> vz, const std::vector<float> minmax, std::vector<int>* isIn, const ROS_OpenCL_Params* params){
+        size_t sz_vx = vx.size();
+        size_t sz_vy = vy.size();
+        size_t sz_vz = vz.size();
+        size_t sz_minmax = minmax.size();
+        size_t sz_isIn = isIn->size();
+
+        size_t typesz_vx = sizeof(float) * sz_vx;
+        size_t typesz_vy = sizeof(float) * sz_vy;
+        size_t typesz_vz = sizeof(float) * sz_vz;
+        size_t typesz_minmax = sizeof(float) * sz_minmax;
+        size_t typesz_isIn = sizeof(int) * sz_isIn;
+
+        cl_int error = 0;
+        cl_mem buffer_vx = clCreateBuffer(context, CL_MEM_WRITE_ONLY, typesz_vx, NULL, &error);
+        checkError(error);
+        cl_mem buffer_vy = clCreateBuffer(context, CL_MEM_WRITE_ONLY, typesz_vy, NULL, &error);
+        checkError(error);
+        cl_mem buffer_vz = clCreateBuffer(context, CL_MEM_WRITE_ONLY, typesz_vz, NULL, &error);
+        checkError(error);
+        cl_mem buffer_minmax = clCreateBuffer(context, CL_MEM_WRITE_ONLY, typesz_minmax, NULL, &error);
+        checkError(error);
+        cl_mem buffer_isIn = clCreateBuffer(context, CL_MEM_WRITE_ONLY, typesz_isIn, NULL, &error);
+        checkError(error);
+
+        clSetKernelArg (kernel, 0, sizeof (cl_mem), &buffer_vx);
+        clSetKernelArg (kernel, 0, sizeof (cl_mem), &buffer_vy);
+        clSetKernelArg (kernel, 0, sizeof (cl_mem), &buffer_vz);
+        clSetKernelArg (kernel, 0, sizeof (cl_mem), &buffer_minmax);
+        clSetKernelArg (kernel, 0, sizeof (cl_mem), &buffer_isIn);
+
+        cl_command_queue queue = clCreateCommandQueueWithProperties (context, deviceIds [0], NULL, &error);
+
+        clEnqueueWriteBuffer(queue, buffer_vx, CL_TRUE, 0, typesz_vx, &vx[0], 0, NULL, NULL);
+        checkError (error);
+        clEnqueueWriteBuffer(queue, buffer_vy, CL_TRUE, 0, typesz_vy, &vy[0], 0, NULL, NULL);
+        checkError (error);
+        clEnqueueWriteBuffer(queue, buffer_vz, CL_TRUE, 0, typesz_vz, &vz[0], 0, NULL, NULL);
+        checkError (error);
+        clEnqueueWriteBuffer(queue, buffer_minmax, CL_TRUE, 0, typesz_minmax, &minmax[0], 0, NULL, NULL);
+        checkError (error);
+        clEnqueueWriteBuffer(queue, buffer_isIn, CL_TRUE, 0, typesz_isIn, &isIn[0], 0, NULL, NULL);
+        checkError (error);
+
+        size_t size[5] = {sz_vx, sz_vy, sz_vz, sz_minmax, sz_isIn};
+        size_t work_dimension = 1;
+
+        cl_event gpuExec;
+
+        checkError (clEnqueueNDRangeKernel (queue, kernel, work_dimension, NULL, size, NULL, 0, NULL, &gpuExec));
+
+        clWaitForEvents(1, &gpuExec);
+
+        int *result_isIn = (int *) malloc(typesz_isIn);
+
+        checkError(clEnqueueReadBuffer(queue, buffer_isIn, CL_TRUE, 0, typesz_isIn, result_isIn, 0, NULL, NULL));
+
+        isIn->assign(result_isIn, result_isIn + sz_isIn);
+
+        clReleaseCommandQueue (queue);
+        clReleaseMemObject(buffer_vx);
+        clReleaseMemObject(buffer_vy);
+        clReleaseMemObject(buffer_vz);
+        clReleaseEvent(gpuExec);
+        free(result_isIn);
+    }
+
     void ROS_OpenCL::process(std::vector<float>* v, const std::vector<int> v2, const std::vector<double> v3, const ROS_OpenCL_Params* params){
         size_t sz = v->size();
         size_t sz2 = v2.size();

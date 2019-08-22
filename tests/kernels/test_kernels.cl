@@ -14,54 +14,33 @@ kernel void invertPointcloud(global float* v){
 
 kernel void minmaxPointcloud(global float* vx, global float* vy, global float* vz, global float* res) {
     unsigned int i = get_global_id(0);
-    if(i == 0) {
-        res[0] = vx[i];
-        res[1] = vy[i];
-        res[2] = vz[i];
-        res[3] = vx[i];
-        res[4] = vy[i];
-        res[5] = vz[i];
-    }
 
-    if(vx[i] < res[0])
-    {
-        res[0] = vx[i];
-    }
+    res[0] = i;
+    res[1] = i;
+    res[5] = i;
+    res[2] = i;
+    res[3] = i;
+    res[4] = i;
 
-    if(vy[i] < res[1])
-    {
-        res[1] = vy[i];
-    }
+}
 
-    if(vz[i] < res[2])
-    {
-        res[2] = vz[i];
-    }
-
-    if(vx[i] > res[3])
-    {
-        res[3] = vx[i];
-    }
-
-    if(vy[i] > res[4])
-    {
-        res[4] = vy[i];
-    }
-
-    if(vz[i] > res[5])
-    {
-        res[5] = vz[i];
+kernel void cropPointCloud(global float* vx, global float* vy, global float* vz, global float* minmax, global int* res) {
+    unsigned int i = get_global_id(0);
+    if((vx[i] > minmax[0]) && (vx[i] < minmax[3]) && (vy[i] > minmax[1]) && (vy[i] < minmax[4]) && (vz[i] > minmax[2]) && (vz[i] < minmax[5])) {
+        res[i] = 1;
+    } else {
+        res[i] = 0;
     }
 }
 
 kernel void voxelAssignement(global float* vx, global float* vy, global float* vz, global float* numDivs, global float* bounds, global int* numPoints, global int* firstPoint, global unsigned int* indices, global float* voxel_size) {
     unsigned int i = get_global_id(0);
-    int x = floor((vx[i]/voxel_size[0]) - bounds[0]);
-    int y = floor((vy[i]/voxel_size[0]) - bounds[1]);
-    int z = floor((vz[i]/voxel_size[0]) - bounds[2]);
+    int x = (int)((vx[i]/voxel_size[0]) - bounds[0]);
+    int y = (int)((vy[i]/voxel_size[0]) - bounds[1]);
+    int z = (int)((vz[i]/voxel_size[0]) - bounds[2]);
 
-    int idx = x + y * numDivs[0] + z * numDivs[0] * numDivs[1];
-    int pointsInVox = numPoints[idx] + 1;
+    unsigned int idx = x + y * numDivs[0] + z * numDivs[0] * numDivs[1];
+    unsigned int pointsInVox = numPoints[idx] + 1;
 
     if(pointsInVox == 1) {
         firstPoint[idx] = i;
