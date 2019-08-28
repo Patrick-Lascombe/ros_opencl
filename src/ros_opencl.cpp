@@ -21387,10 +21387,10 @@ namespace ros_opencl {
         checkError(error);
 
         clSetKernelArg (kernel, 0, sizeof (cl_mem), &buffer_vx);
-        clSetKernelArg (kernel, 0, sizeof (cl_mem), &buffer_vy);
-        clSetKernelArg (kernel, 0, sizeof (cl_mem), &buffer_vz);
-        clSetKernelArg (kernel, 0, sizeof (cl_mem), &buffer_minmax);
-        clSetKernelArg (kernel, 0, sizeof (cl_mem), &buffer_isIn);
+        clSetKernelArg (kernel, 1, sizeof (cl_mem), &buffer_vy);
+        clSetKernelArg (kernel, 2, sizeof (cl_mem), &buffer_vz);
+        clSetKernelArg (kernel, 3, sizeof (cl_mem), &buffer_minmax);
+        clSetKernelArg (kernel, 4, sizeof (cl_mem), &buffer_isIn);
 
         cl_command_queue queue = clCreateCommandQueueWithProperties (context, deviceIds [0], NULL, &error);
 
@@ -21400,15 +21400,17 @@ namespace ros_opencl {
         checkError (error);
         clEnqueueWriteBuffer(queue, buffer_vz, CL_TRUE, 0, typesz_vz, &vz[0], 0, NULL, NULL);
         checkError (error);
+
         clEnqueueWriteBuffer(queue, buffer_minmax, CL_TRUE, 0, typesz_minmax, &minmax[0], 0, NULL, NULL);
         checkError (error);
-        clEnqueueWriteBuffer(queue, buffer_isIn, CL_TRUE, 0, typesz_isIn, &isIn[0], 0, NULL, NULL);
+        clEnqueueWriteBuffer(queue, buffer_isIn, CL_TRUE, 0, typesz_isIn, &isIn->at(0), 0, NULL, NULL);
         checkError (error);
 
         size_t size[5] = {sz_vx, sz_vy, sz_vz, sz_minmax, sz_isIn};
         size_t work_dimension = 1;
 
         cl_event gpuExec;
+
 
         checkError (clEnqueueNDRangeKernel (queue, kernel, work_dimension, NULL, size, NULL, 0, NULL, &gpuExec));
 
@@ -21419,6 +21421,7 @@ namespace ros_opencl {
         checkError(clEnqueueReadBuffer(queue, buffer_isIn, CL_TRUE, 0, typesz_isIn, result_isIn, 0, NULL, NULL));
 
         isIn->assign(result_isIn, result_isIn + sz_isIn);
+
 
         clReleaseCommandQueue (queue);
         clReleaseMemObject(buffer_vx);

@@ -14,7 +14,6 @@ void cloudCallback (const sensor_msgs::PointCloud2& msg){
     std::vector<float> vx, vy, vz;
 
     sensor_msgs::PointCloud2 msg_2(msg);
-    sensor_msgs::PointCloud2 output;
     sensor_msgs::PointCloud2Iterator<float> iter_x(msg_2, "x");
     sensor_msgs::PointCloud2Iterator<float> iter_y(msg_2, "y");
     sensor_msgs::PointCloud2Iterator<float> iter_z(msg_2, "z");
@@ -55,21 +54,11 @@ void cloudCallback (const sensor_msgs::PointCloud2& msg){
         minmax_[i] = minmax_[i] / 2;
     }
 
-    std::vector<int> isIn;
+    std::vector<int> isIn(vx.size());
     roscl.process(vx, vy, vz, minmax_, &isIn);
     std::vector<float> res_x, res_y, res_z;
 
-    sensor_msgs::PointCloud2Iterator<float> iter_x_output(output, "x");
-    sensor_msgs::PointCloud2Iterator<float> iter_y_output(output, "y");
-    sensor_msgs::PointCloud2Iterator<float> iter_z_output(output, "z");
-
-    for (int i = 0; i < res_x.size(); i++) {
-        if(isIn[i] == 1) {
-            *iter_x_output = res_x[i];
-            *iter_y_output = res_y[i];
-            *iter_z_output = res_z[i];
-        }
-    }
+    sensor_msgs::PointCloud2 output;
 
     pub.publish(output);
 }
