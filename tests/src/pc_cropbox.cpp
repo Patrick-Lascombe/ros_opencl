@@ -14,6 +14,7 @@ void cloudCallback (const sensor_msgs::PointCloud2& msg){
     std::vector<float> vx, vy, vz;
 
     sensor_msgs::PointCloud2 msg_2(msg);
+    sensor_msgs::PointCloud2 output;
     sensor_msgs::PointCloud2Iterator<float> iter_x(msg_2, "x");
     sensor_msgs::PointCloud2Iterator<float> iter_y(msg_2, "y");
     sensor_msgs::PointCloud2Iterator<float> iter_z(msg_2, "z");
@@ -54,12 +55,32 @@ void cloudCallback (const sensor_msgs::PointCloud2& msg){
         minmax_[i] = minmax_[i] / 2;
     }
 
+    output.data.resize(msg_2.data.size ());
+    output.header = msg_2.header;
+    output.is_bigendian =msg_2.is_bigendian;
+    output.row_step = msg_2.row_step;
+    output.point_step = msg_2.point_step;
+    output.fields = msg_2.fields;
+    output.is_dense = msg_2.is_dense;
+
     std::vector<int> isIn(vx.size());
     roscl.process(vx, vy, vz, minmax_, &isIn);
     std::vector<float> res_x, res_y, res_z;
 
-    sensor_msgs::PointCloud2 output;
+    for(int i = 0; i < vx.size(); i ++) {
+        if(isIn[i] == 1) {
+            int point_offset = i*msg_2.point_step;
+//            std::cout << "Before conversion : " << vx[i] << std::endl;
+//            vx[i] = (uint8_t)vx[i];
+//            vy[i] = (uint8_t)vy[i];
+//            vz[i] = (uint8_t)vz[i];
+//            std::cout << "After conversion : " << vx[i] << std::endl;
 
+            memcpy(&output.data[point_offset], &vx[i], sizeof (uint8_t));
+            memcpy(&output.data[point_offset], &vy[i], sizeof (uint8_t));
+            memcpy(&output.data[point_offset], &vz[i], sizeof (uint8_t));
+        }
+    }
     pub.publish(output);
 }
 
